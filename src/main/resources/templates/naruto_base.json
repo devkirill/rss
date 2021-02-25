@@ -1,0 +1,14 @@
+{
+  "url": "https?:\\/\\/naruto-base\\.su\\/.*",
+  "template": {
+    "root": ".archiveEntries div[id~=entry]:not(:contains(Неизвестно))",
+    "feed": {
+      "title": "meta[property*=title] @content"
+    },
+    "post": {
+      "description": "h2 a",
+      "link": "a @href",
+      "innerImg": "div.yellowBox div a[rel~=iLoad] @href"
+    }
+  }
+}

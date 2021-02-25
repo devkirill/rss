@@ -27,6 +27,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.jsoup:jsoup:1.13.1")
     implementation(kotlin("stdlib-jdk8"))
+    implementation("com.google.code.gson:gson:2.8.6")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.9.4")
+    implementation("commons-codec:commons-codec:1.9")
 }
 
 tasks.withType<Test> {

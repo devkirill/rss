@@ -1,0 +1,20 @@
+{
+  "url": "https?:\\/\\/habr\\.com\\/.*",
+  "template": {
+    "root": "article.post",
+    "feed": {
+      "title": "meta[property*=title] @content",
+      "description": "meta[property*=description] @content",
+      "image": "meta[property*=image] @content",
+      "language": "html[lang] @lang"
+    },
+    "post": {
+      "guid": "div.post__body a.btn @href",
+      "title": "a.post__title_link",
+      "description": "div.post__text @",
+      "link": "div.post__body a.btn @href",
+      "author": "span.user-info__nickname",
+      "pubDate": "span.post__time"
+    }
+  }
+}
