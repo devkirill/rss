@@ -17,6 +17,10 @@ class TemplateStorage {
             Gson().fromJson(getClassLoader().getResource("templates/$it").readText(), StoredTemplate::class.java)
         }
 
+    init {
+        println(getResourceFiles("templates"))
+    }
+
     fun findTemplate(url: String): Template {
         for (storedTemplate in storage) {
             if (Pattern.matches(storedTemplate.url, url)) {
@@ -49,7 +53,8 @@ class TemplateStorage {
         private fun getResourceAsStream(resource: String) = getClassLoader().getResourceAsStream(resource)
 //            getContextClassLoader().getResourceAsStream(resource) ?: javaClass.getResourceAsStream(resource)
 
-        private fun getClassLoader() = getContextClassLoader() ?: javaClass.classLoader
+//        private fun getClassLoader() = getContextClassLoader() ?: javaClass.classLoader
+        private fun getClassLoader() = javaClass.classLoader
 
         private fun getContextClassLoader() = Thread.currentThread().contextClassLoader
     }
