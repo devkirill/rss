@@ -87,7 +87,7 @@ class JsoupParser {
         post.pubDate = parse(rawDate)
         post.link = url + getValue(node, template.link)
         post.guid = getValue(node, template.guid)
-        if (post.guid == null) post.guid = post.link
+        if (post.guid?.isEmpty() != false) post.guid = post.link
 
         post.img = listOf()
         if (template.img != null) {
