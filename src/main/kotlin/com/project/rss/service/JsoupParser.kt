@@ -1,63 +1,46 @@
 package com.project.rss.service
 
-import com.project.rss.model.*
-import com.project.rss.utils.DateUtil.parse
+import com.project.rss.model.Feed
+import com.project.rss.model.FeedTemplate
+import com.project.rss.model.Item
+import com.project.rss.model.Template
+import com.project.rss.utils.DateUtil
+import com.project.rss.utils.Json
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
-import org.springframework.stereotype.Service
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import java.util.regex.Pattern
 import java.util.stream.Collectors
 
-@Service
-class JsoupParser {
-    fun getFeed(url: String, template: Template): Feed {
+class JsoupParser(val url: String, val template: Template) : Parser() {
+//    private val pattern: Regex by lazy { Regex(url) }
+
+    override fun urlMatch(selectedUrl: String): Boolean {
+        return selectedUrl.matches(Regex(url))
+    }
+
+    override fun getFeed(url: String): Feed {
         try {
             val baseUrl = URL(url)
 
             System.setProperty("http.agent", "insomnia/6.6.2")
             val document = Jsoup.parse(baseUrl, 5000)
 
-            return parse(baseUrl, document, template)
+            return parse(baseUrl, document)
         } catch (e: Exception) {
             throw IllegalStateException(e)
         }
     }
 
-//                    "naruto-base.su" -> {
-//                    val latestId = latest.replace(Regex("\\D"), "").toInt()
-//                    val list = Jsoup.connect(s.key).get()
-//                            .select("#allEntries div.title a")
-//                            .map { it.text() to "https://naruto-base.su${it.attr("href")}" }
-//                            .filter { it.first.replace(Regex("\\D"), "").toInt() > latestId }
-//                            .sortedBy { it.first.replace(Regex("\\D"), "").toInt() }
-//                    if (list.isNotEmpty()) {
-//                        var newLatest = latest
-//                        for (i in list) {
-//                            val doc = Jsoup.connect(i.second).get()
-//                            val urls = doc.select("div.yellowBox div a[rel~=iLoad]")
-//                                    .map { element ->
-//                                        val href = element.attr("href")
-//                                        "https://naruto-base.su$href"
-//                                    }
-//                            if (urls.isNotEmpty()) {
-//                                for (chatId in s.value) {
-//                                    sendImages(chatId, urls)
-//                                }
-//                                newLatest = i.first
-//                            }
-//                        }
-//                        if (latest != newLatest)
-//                            storage.save(Manga(s.key, newLatest))
-//                    }
-//                }
-
-    fun parse(url: URL, root: Document, template: Template): Feed {
+    fun parse(url: URL, root: Document): Feed {
         val feed = parseFeed(url, root, template.feed)
-        feed.item = getNodes(root, template).map { parsePost(url, it, template.post) }
+        feed.item = getNodes(root).map { parsePost(url, it) }
         return feed
     }
 
@@ -73,33 +56,34 @@ class JsoupParser {
         feed.language = getValue(node, template.language)
         feed.link = getValue(node, template.link)
         val rawDate = getValue(node, template.pubDate)
-        feed.pubDate = parse(rawDate) ?: ZonedDateTime.now()
+        feed.pubDate = DateUtil.parse(rawDate) ?: ZonedDateTime.now()
         return feed
     }
 
-    fun parsePost(url: URL, node: Element, template: PostTemplate): Item {
+    fun parsePost(url: URL, node: Element): Item {
+        val postTemplate = template.post
         val post = Item()
-        post.title = getValue(node, template.title)
-        post.description = getValue(node, template.description)
-        post.author = getValue(node, template.author)
-        val rawDate = getValue(node, template.pubDate)
+        post.title = getValue(node, postTemplate.title)
+        post.description = getValue(node, postTemplate.description)
+        post.author = getValue(node, postTemplate.author)
+        val rawDate = getValue(node, postTemplate.pubDate)
         post.rawPubDate = rawDate
-        post.pubDate = parse(rawDate)
-        post.link = url + getValue(node, template.link)
-        post.guid = getValue(node, template.guid)
+        post.pubDate = DateUtil.parse(rawDate)
+        post.link = url + getValue(node, postTemplate.link)
+        post.guid = getValue(node, postTemplate.guid)
         if (post.guid?.isEmpty() != false) post.guid = post.link
 
         post.img = listOf()
-        if (template.img != null) {
-            val img = getValue(node, template.img)
+        if (postTemplate.img != null) {
+            val img = getValue(node, postTemplate.img)
             if (img.isNotBlank())
                 post.img += url + img
         }
-        if (template.innerImg != null && post.link != null) {
+        if (postTemplate.innerImg != null && post.link != null) {
             try {
                 val innerDocument = Jsoup.parse(URL(post.link), 5000)
 
-                post.img += getValues(innerDocument, template.innerImg).map { url + it }
+                post.img += getValues(innerDocument, postTemplate.innerImg).map { url + it }
             } catch (e: Exception) {
                 throw IllegalStateException(e)
             }
@@ -157,9 +141,18 @@ class JsoupParser {
         }
     }
 
-    fun getNodes(root: Document, path: String?): List<Element> {
+    fun getNodes(root: Document, path: String? = template.root): List<Element> {
         return root.select(path)
     }
 
-    fun getNodes(root: Document, template: Template): List<Element> = getNodes(root, template.root)
+    companion object {
+        operator fun invoke(classLoader: ClassLoader, resource: String): JsoupParser {
+            val inputStream = classLoader.getResourceAsStream(resource)
+                ?: throw IllegalStateException("not found resource - $resource")
+            val content = BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8))
+                .lines()
+                .collect(Collectors.joining("\n"))
+            return Json.read(content)
+        }
+    }
 }
