@@ -7,7 +7,7 @@
     },
     "post": {
       "link": "a @href",
-      "description": "h2 a",
+      "title": "h2 a",
       "innerImg": "div.yellowBox div a[rel~=iLoad] @href"
     }
   }
